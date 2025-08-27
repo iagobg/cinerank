@@ -1,0 +1,19 @@
+package ui
+
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>{ title }</title>
+		<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+		<link href="/static/css/output.css" rel="stylesheet">
+	</head>
+	<body class="min-h-screen bg-gray-100">
+		<div class="max-w-4xl mx-auto p-6">
+			{ children... }
+		</div>
+	</body>
+	</html>
+}
