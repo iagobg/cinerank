@@ -62,6 +62,8 @@ clean:
 install-deps:
 	go install github.com/a-h/templ/cmd/templ@latest
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	go get golang.org/x/crypto/bcrypt
+	go get github.com/google/uuid
 	npm install
 
 # Build for production

@@ -26,6 +26,7 @@ func main() {
 
 	// HTML routes
 	mux.HandleFunc("/", h.HomePage)
+	mux.HandleFunc("/search", h.SearchMovies)
 	mux.HandleFunc("/movie/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/movie/") {
 			h.MoviePage(w, r)
@@ -37,6 +38,24 @@ func main() {
 	mux.HandleFunc("/movies", h.CreateMovie)
 	mux.HandleFunc("/review-form", h.AddReviewForm)
 	mux.HandleFunc("/reviews", h.CreateReview)
+	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			h.Login(w, r)
+		} else {
+			h.LoginForm(w, r)
+		}
+	})
+	mux.HandleFunc("/logout", h.Logout)
+	mux.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			h.Register(w, r)
+		} else {
+			h.RegisterForm(w, r)
+		}
+	})
+	mux.HandleFunc("/admin", h.AdminPanel)
+	mux.HandleFunc("/admin/delete-user/", h.DeleteUser)
+	mux.HandleFunc("/admin/delete-movie/", h.DeleteMovie)
 
 	// API routes
 	mux.HandleFunc("/api/movies", func(w http.ResponseWriter, r *http.Request) {
