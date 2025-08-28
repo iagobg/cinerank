@@ -1,26 +1,3 @@
-# 🎬 CineRank
-
-A modern movie review web application built with Go, HTMX, Templ, Tailwind CSS, and PostgreSQL.
-
-## Features
-
-- **Movie Management**: Add and browse movies with detailed information
-- **User Reviews**: Write and read movie reviews with 5-star ratings
-- **Responsive Design**: Modern, mobile-first UI with Tailwind CSS
-- **Interactive UI**: Dynamic interactions powered by HTMX
-- **PostgreSQL Database**: Robust data persistence with Neon or any PostgreSQL database
-- **Docker Support**: Easy deployment with Docker containerization
-- **RESTful API**: JSON API endpoints for programmatic access
-
-## Tech Stack
-
-- **Backend**: Go 1.25+ with standard library HTTP server
-- **Frontend**: Templ templates + HTMX + Tailwind CSS
-- **Database**: PostgreSQL (Neon compatible)
-- **Deployment**: Docker with multi-stage builds
-- **CSS Processing**: Tailwind CLI
-- **Database Migrations**: golang-migrate
-
 ## Quick Start
 
 ### Prerequisites
