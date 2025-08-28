@@ -1,19 +1,383 @@
 package ui
 
+import (
+	"fmt"
+	"cinerank/internal/models"
+)
+
 templ Layout(title string) {
 	<!DOCTYPE html>
 	<html lang="en">
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>{ title }</title>
+		<title>{ title } - CineRank</title>
 		<script src="https://unpkg.com/htmx.org@1.9.12"></script>
 		<link href="/static/css/output.css" rel="stylesheet">
 	</head>
-	<body class="min-h-screen bg-gray-100">
-		<div class="max-w-4xl mx-auto p-6">
+	<body class="min-h-screen bg-gray-50">
+		<nav class="bg-blue-900 text-white shadow-lg">
+			<div class="max-w-6xl mx-auto px-4">
+				<div class="flex justify-between items-center py-4">
+					<a href="/" class="text-2xl font-bold">🎬 CineRank</a>
+					<div class="space-x-4">
+						<a href="/" class="hover:text-blue-200 transition-colors">Home</a>
+						<a href="/add-movie" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors">Adicionar Filmes</a>
+					</div>
+				</div>
+			</div>
+		</nav>
+		<main class="max-w-6xl mx-auto px-4 py-8">
 			{ children... }
-		</div>
+		</main>
+		<footer class="bg-gray-800 text-white text-center py-8 mt-16">
+			<p>&copy; 2025 CineRank. Rate and review your favorite movies.</p>
+		</footer>
 	</body>
 	</html>
+}
+
+templ HomePage(movies []models.MovieWithStats, recentReviews []models.Review) {
+	@Layout("Home") {
+		<div class="space-y-8">
+			<!-- Hero Section -->
+			<div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white text-center">
+				<h1 class="text-4xl font-bold mb-4">CineRank</h1>
+				<p class="text-xl mb-6">A plataforma para avaliar e encontrar os melhores filmes.</p>
+			</div>
+
+			<div class="grid lg:grid-cols-3 gap-8">
+				<!-- Movies Grid -->
+				<div class="lg:col-span-2">
+					<div class="flex justify-between items-center mb-6">
+						<h2 class="text-2xl font-bold text-gray-800">Filmes Recentemente Adicionados</h2>
+						<span class="text-gray-600">{ fmt.Sprintf("%d movies", len(movies)) }</span>
+					</div>
+					
+					if len(movies) == 0 {
+						<div class="bg-white rounded-lg p-8 text-center">
+							<div class="text-gray-400 text-6xl mb-4">🎬</div>
+							<h3 class="text-lg font-semibold text-gray-600 mb-2">Ainda não há filmes por aqui.</h3>
+							<p class="text-gray-500 mb-4">Be the first to add a movie to CineRank!</p>
+							<a href="/add-movie" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+								Add Movie
+							</a>
+						</div>
+					} else {
+						<div class="grid md:grid-cols-2 gap-6">
+							for _, movie := range movies {
+								@MovieCard(movie)
+							}
+						</div>
+					}
+				</div>
+
+				<!-- Recent Reviews Sidebar -->
+				<div class="lg:col-span-1">
+					<h2 class="text-2xl font-bold text-gray-800 mb-6">Avaliações Recentes</h2>
+					if len(recentReviews) == 0 {
+						<div class="bg-white rounded-lg p-6 text-center">
+							<div class="text-gray-400 text-4xl mb-2">📝</div>
+							<p class="text-gray-500">Ainda não há nenhuma avaliação.</p>
+						</div>
+					} else {
+						<div class="space-y-4">
+							for _, review := range recentReviews {
+								@RecentReviewItem(review)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ MovieCard(movie models.MovieWithStats) {
+	<div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+		<div class="flex">
+			if movie.PosterURL != "" {
+				<img src={ movie.PosterURL } alt={ movie.Title } class="w-24 h-36 object-cover">
+			} else {
+				<div class="w-24 h-36 bg-gray-200 flex items-center justify-center text-gray-400">
+					🎬
+				</div>
+			}
+			<div class="flex-1 p-4">
+				<div class="flex justify-between items-start mb-2">
+					<h3 class="font-bold text-lg text-gray-800 line-clamp-1">{ movie.Title }</h3>
+					<span class="text-sm text-gray-500">{ fmt.Sprintf("%d", movie.Year) }</span>
+				</div>
+				<p class="text-gray-600 text-sm mb-2">By { movie.Director }</p>
+				<p class="text-xs text-blue-600 mb-3">{ movie.Genre }</p>
+				
+				<div class="flex justify-between items-center">
+					<div class="flex items-center space-x-2">
+						if movie.ReviewCount > 0 {
+							@StarRating(movie.AverageRating)
+							<span class="text-sm text-gray-500">({ fmt.Sprintf("%d", movie.ReviewCount) })</span>
+						} else {
+							<span class="text-sm text-gray-500">Sem avaliações ainda.</span>
+						}
+					</div>
+					<a href={ templ.URL(fmt.Sprintf("/movie/%d", movie.ID)) } 
+					   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+						Mais Detalhes →
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ RecentReviewItem(review models.Review) {
+	<div class="bg-white rounded-lg p-4 shadow-sm">
+		<div class="flex justify-between items-start mb-2">
+			@StarRating(float64(review.Rating))
+			<span class="text-xs text-gray-500">{ review.CreatedAt.Format("Jan 2") }</span>
+		</div>
+		<h4 class="font-semibold text-sm mb-1">{ review.Title }</h4>
+		if review.Movie != nil {
+			<p class="text-xs text-blue-600 mb-2">{ review.Movie.Title }</p>
+		}
+		<p class="text-gray-600 text-sm line-clamp-3">{ review.Content }</p>
+		<p class="text-xs text-gray-500 mt-2">by { review.UserName }</p>
+	</div>
+}
+
+templ StarRating(rating float64) {
+	<div class="flex items-center">
+		for i := 1; i <= 5; i++ {
+			if float64(i) <= rating {
+				<span class="text-yellow-400">★</span>
+			} else {
+				<span class="text-gray-300">★</span>
+			}
+		}
+	</div>
+}
+
+templ MoviePage(movie *models.Movie, reviews []models.Review) {
+	@Layout(movie.Title) {
+		<div class="space-y-8">
+			<!-- Movie Header -->
+			<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+				<div class="md:flex">
+					if movie.PosterURL != "" {
+						<img src={ movie.PosterURL } alt={ movie.Title } class="w-full md:w-80 h-96 object-cover">
+					} else {
+						<div class="w-full md:w-80 h-96 bg-gray-200 flex items-center justify-center text-gray-400 text-6xl">
+							🎬
+						</div>
+					}
+					<div class="flex-1 p-8">
+						<div class="flex justify-between items-start mb-4">
+							<h1 class="text-3xl font-bold text-gray-900">{ movie.Title }</h1>
+							<span class="text-lg text-gray-600">{ fmt.Sprintf("%d", movie.Year) }</span>
+						</div>
+						<p class="text-xl text-gray-700 mb-2">Directed by { movie.Director }</p>
+						<p class="text-blue-600 font-medium mb-4">{ movie.Genre }</p>
+						
+						if movie.IMDBRating > 0 {
+							<div class="flex items-center mb-4">
+								<span class="text-yellow-500 text-2xl mr-2">⭐</span>
+								<span class="text-lg font-semibold">{ fmt.Sprintf("%.1f", movie.IMDBRating) }/10 IMDB</span>
+							</div>
+						}
+						
+						if movie.Plot != "" {
+							<p class="text-gray-600 leading-relaxed">{ movie.Plot }</p>
+						}
+					</div>
+				</div>
+			</div>
+
+			<!-- Reviews Section -->
+			<div class="bg-white rounded-lg shadow-lg p-8">
+				<div class="flex justify-between items-center mb-6">
+					<h2 class="text-2xl font-bold text-gray-900">Reviews ({ fmt.Sprintf("%d", len(reviews)) })</h2>
+					<button 
+						hx-get={ fmt.Sprintf("/review-form?movie_id=%d", movie.ID) }
+						hx-target="#review-form-container"
+						hx-swap="innerHTML"
+						class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+						Write a Review
+					</button>
+				</div>
+
+				<!-- Review Form Container -->
+				<div id="review-form-container" class="mb-8"></div>
+
+				<!-- Reviews List -->
+				<div id="reviews-list" class="space-y-6">
+					if len(reviews) == 0 {
+						<div class="text-center py-12">
+							<div class="text-gray-400 text-6xl mb-4">📝</div>
+							<h3 class="text-lg font-semibold text-gray-600 mb-2">No reviews yet</h3>
+							<p class="text-gray-500">Be the first to review this movie!</p>
+						</div>
+					} else {
+						for _, review := range reviews {
+							@ReviewItem(review)
+						}
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ ReviewItem(review models.Review) {
+	<div class="border-b border-gray-200 last:border-b-0 pb-6 last:pb-0">
+		<div class="flex justify-between items-start mb-3">
+			<div class="flex items-center space-x-3">
+				@StarRating(float64(review.Rating))
+				<span class="font-semibold text-gray-800">{ review.Title }</span>
+			</div>
+			<span class="text-sm text-gray-500">{ review.CreatedAt.Format("January 2, 2006") }</span>
+		</div>
+		<p class="text-gray-700 mb-3 leading-relaxed">{ review.Content }</p>
+		<p class="text-sm text-gray-500">— { review.UserName }</p>
+	</div>
+}
+
+templ ReviewForm(movieID int) {
+	<div class="bg-gray-50 rounded-lg p-6 mb-6">
+		<h3 class="text-lg font-semibold mb-4">Write Your Review</h3>
+		<form hx-post="/reviews" hx-target="#reviews-list" hx-swap="afterbegin" class="space-y-4">
+			<input type="hidden" name="movie_id" value={ fmt.Sprintf("%d", movieID) }>
+			
+			<div class="grid md:grid-cols-2 gap-4">
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-2">Nome</label>
+					<input type="text" name="user_name" required 
+						   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+				</div>
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-2">Nota</label>
+					<select name="rating" required 
+							class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+						<option value="">Selecione a sua nota:</option>
+						<option value="5">⭐⭐⭐⭐⭐ (5 stars)</option>
+						<option value="4">⭐⭐⭐⭐ (4 stars)</option>
+						<option value="3">⭐⭐⭐ (3 stars)</option>
+						<option value="2">⭐⭐ (2 stars)</option>
+						<option value="1">⭐ (1 star)</option>
+					</select>
+				</div>
+			</div>
+			
+			<div>
+				<label class="block text-sm font-medium text-gray-700 mb-2">Título da avaliação</label>
+				<input type="text" name="title" required 
+					   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+					   placeholder="Resuma a sua avaliação em poucas palavras">
+			</div>
+			
+			<div>
+				<label class="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
+				<textarea name="content" rows="4" required 
+						  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+						  placeholder="Compartilhe o que achou desse filme!"></textarea>
+			</div>
+			
+			<div class="flex gap-3">
+				<button type="submit" 
+						class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+					Submit Review
+				</button>
+				<button type="button" 
+						onclick="document.getElementById('review-form-container').innerHTML = ''"
+						class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+					Cancel
+				</button>
+			</div>
+		</form>
+	</div>
+}
+
+templ AddMovieForm() {
+	@Layout("Add Movie") {
+		<div class="max-w-2xl mx-auto">
+			<div class="bg-white rounded-lg shadow-lg p-8">
+				<h1 class="text-2xl font-bold text-gray-900 mb-6">Add New Movie</h1>
+				
+				<form hx-post="/movies" hx-encoding="multipart/form-data" class="space-y-6">
+					<div class="grid md:grid-cols-2 gap-6">
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+							<input type="text" name="title" required 
+								   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-2">Director *</label>
+							<input type="text" name="director" required 
+								   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+						</div>
+					</div>
+					
+					<div class="grid md:grid-cols-3 gap-6">
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-2">Year *</label>
+							<input type="number" name="year" required min="1900" max="2030"
+								   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-2">Genre *</label>
+							<select name="genre" required 
+									class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+								<option value="">Selecione o gênero</option>
+								<option value="Action">Ação</option>
+								<option value="Comedy">Comédia</option>
+								<option value="Drama">Drama</option>
+								<option value="Horror">Horror</option>
+								<option value="Sci-Fi">Sci-Fi</option>
+								<option value="Thriller">Thriller</option>
+								<option value="Romance">Romance</option>
+								<option value="Adventure">Aventura</option>
+								<option value="Animation">Animação</option>
+								<option value="Crime">Crime</option>
+								<option value="Documentary">Documentário</option>
+								<option value="Fantasy">Fantasia</option>
+								<option value="Mystery">Mistério</option>
+								<option value="War">Guerra</option>
+								<option value="Western">Western</option>
+							</select>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-2">IMDB Rating</label>
+							<input type="number" name="imdb_rating" step="0.1" min="0" max="10"
+								   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+								   placeholder="e.g., 8.5">
+						</div>
+					</div>
+					
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-2">Poster URL</label>
+						<input type="url" name="poster_url" 
+							   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+							   placeholder="https://example.com/poster.jpg">
+					</div>
+					
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-2">Plot Summary</label>
+						<textarea name="plot" rows="4" 
+								  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+								  placeholder="Breve descrição do filme..."></textarea>
+					</div>
+					
+					<div class="flex gap-4">
+						<button type="submit" 
+								class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+							Adicionar Filme
+						</button>
+						<a href="/" 
+						   class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition-colors font-semibold">
+							Cancelar
+						</a>
+					</div>
+				</form>
+			</div>
+		</div>
+	}
 }

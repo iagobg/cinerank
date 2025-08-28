@@ -21,15 +21,15 @@ run:
 
 # Database operations (requires DATABASE_URL environment variable)
 migrate-up:
-	@if [ -z "$(DATABASE_URL)" ]; then echo "ERROR: DATABASE_URL environment variable is not set"; exit 1; fi
+	@powershell -Command "if (-not $$env:DATABASE_URL) { Write-Host 'ERROR: DATABASE_URL environment variable is not set' -ForegroundColor Red; exit 1 }"
 	migrate -path ./migrations -database "$(DATABASE_URL)" up
 
 migrate-down:
-	@if [ -z "$(DATABASE_URL)" ]; then echo "ERROR: DATABASE_URL environment variable is not set"; exit 1; fi
+	@powershell -Command "if (-not $$env:DATABASE_URL) { Write-Host 'ERROR: DATABASE_URL environment variable is not set' -ForegroundColor Red; exit 1 }"
 	migrate -path ./migrations -database "$(DATABASE_URL)" down
 
 db-reset:
-	@if [ -z "$(DATABASE_URL)" ]; then echo "ERROR: DATABASE_URL environment variable is not set"; exit 1; fi
+	@powershell -Command "if (-not $$env:DATABASE_URL) { Write-Host 'ERROR: DATABASE_URL environment variable is not set' -ForegroundColor Red; exit 1 }"
 	migrate -path ./migrations -database "$(DATABASE_URL)" down -all
 	migrate -path ./migrations -database "$(DATABASE_URL)" up
 
@@ -55,7 +55,7 @@ docker-dev-down:
 	docker-compose -f docker-compose.dev.yml down
 
 clean:
-	rm -rf ./tmp ./dist
+	powershell -Command "Remove-Item -Path './tmp', './dist' -Recurse -Force -ErrorAction SilentlyContinue"
 	docker image prune -f
 
 # Install development dependencies
@@ -66,7 +66,7 @@ install-deps:
 
 # Build for production
 build: clean templ css
-	CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server
+	set CGO_ENABLED=0 && set GOOS=linux && go build -o server ./cmd/server
 
 # Help
 help:
@@ -92,4 +92,4 @@ help:
 	@echo ""
 	@echo "Environment Setup:"
 	@echo "  Set DATABASE_URL environment variable to your Neon database URL:"
-	@echo "  export DATABASE_URL='postgresql://user:password@host/database?sslmode=require'"
+	@echo "  $env:DATABASE_URL='postgresql://user:password@host/database?sslmode=require'"

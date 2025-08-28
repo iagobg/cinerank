@@ -3,27 +3,62 @@ package main
 import (
 	"log"
 	"net/http"
-	"cinerank/internal/ui"
+	"os"
+	"strings"
+
+	"cinerank/internal/database"
+	"cinerank/internal/handlers"
 )
 
 func main() {
+	// Connect to database
+	db, err := database.Connect()
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+	defer db.Close()
+
+	// Create handler
+	h := handlers.NewHandler(db)
+
+	// Create HTTP router
 	mux := http.NewServeMux()
 
-	// Home route
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if err := ui.HomePage().Render(r.Context(), w); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("render error: " + err.Error()))
-			return
+	// HTML routes
+	mux.HandleFunc("/", h.HomePage)
+	mux.HandleFunc("/movie/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/movie/") {
+			h.MoviePage(w, r)
+		} else {
+			http.NotFound(w, r)
 		}
 	})
+	mux.HandleFunc("/add-movie", h.AddMovieForm)
+	mux.HandleFunc("/movies", h.CreateMovie)
+	mux.HandleFunc("/review-form", h.AddReviewForm)
+	mux.HandleFunc("/reviews", h.CreateReview)
 
-	// Demo HTMX endpoint
-	mux.HandleFunc("/clicked", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		if err := ui.ClickResult().Render(r.Context(), w); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("render error: " + err.Error()))
+	// API routes
+	mux.HandleFunc("/api/movies", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			h.APIGetMovies(w, r)
+		case http.MethodPost:
+			h.APICreateMovie(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	
+	mux.HandleFunc("/api/movies/", h.APIGetMovie)
+	mux.HandleFunc("/api/reviews", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			h.APIGetReviews(w, r)
+		case http.MethodPost:
+			h.APICreateReview(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
 
@@ -31,8 +66,17 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
-		log.Fatal(err)
+	// Get port from environment or default to 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("🎬 CineRank server starting on port %s", port)
+	log.Printf("📊 Database connected successfully")
+	log.Printf("🌐 Visit http://localhost:%s to get started", port)
+	
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
+		log.Fatal("Server failed to start:", err)
 	}
 }
